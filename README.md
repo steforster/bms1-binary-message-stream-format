@@ -204,7 +204,7 @@ The following tag-bytes are used for message and block framing:
 
 	240		BlockStart, either no block type available or block type is defined by an attribute
 
-	242		BlockStart with 2 bytes block type id, range [0...65'535]
+	242		BlockStart with 2 bytes block type id, range [1...65'535]
 
 	244		BMS1 MessageStart, BMS specification version 1.0.
             MessageStart is followed by 4 bytes containing the decimal data [01, 66, 77, 83].  
@@ -220,6 +220,49 @@ The following tag-bytes are used for message and block framing:
 	255		not allowed, invalid tag
 
 Note: The length specifier does not apply to the 25x tag-bytes.
+
+
+
+### A note to implementors
+
+I do not recommend to implement a BMS1 serializer using reflection and attributes (in C# speak).
+You get much better control over serialization and versioning when implementing interfaces like the ones below.
+You can keep XML and/or Json serialization attributes in your data transfer objects (DTO) 
+but you also implement interface IBms1Block on the DTO to programmatically serialize and deserialize from BMS1. 
+In the end this approach will be less error prone, better maintainable and understandable than the declarative approach.
+
+	public interface IBms1Block
+	{
+		public void Bms1Read  (IBms1StreamReader stream);
+		public void Bms1Write (IBms1StreamWriter stream);
+	}
+
+	public interface IBms1StreamReader
+	{
+		public bool EndOfMessage {get;} // before message start or after message end
+		public bool EndOfBlock   {get;} // before block start or after block end
+
+		public void ReadMessageStart (ref int messageType, ref List<Bms1Attribute> attributes);
+		public void ReadMessage (ref IBms1Block message);
+
+		public bool ReadBlock (int blockType, ref IBms1Block block); // returns false, when not read because: NoData(null), not matching type, EndOfBlock, EndOfMessage
+		public bool ReadByte  (ref byte data); // returns false, when not read because: NoData(null), EndOfBlock, EndOfMessage
+		public bool ReadInt   (ref int  data); // returns false, when not read because: NoData(null), EndOfBlock, EndOfMessage
+        ....
+	}
+
+	public interface IBms1StreamWriter
+	{
+		public bool EndOfMessage {get;} // before message start or after message end
+		public bool EndOfBlock   {get;} // before block start or after block end
+
+		public void WriteMessage (int messageType, IBms1Block message, List<Bms1Attribute> attributes);
+
+		public void WriteBlock (int  blockType, IBms1Block block); // inner block type is written by the outer block
+		public void WriteByte  (byte data);
+		public void WriteInt   (int  data);
+        ....
+	}
 
 
 
