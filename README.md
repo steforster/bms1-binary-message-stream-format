@@ -1,7 +1,7 @@
 BMS1: Binary Message Stream, Version 1
 ======================================
 
-**BMS1** is yet another data serialization format. The main goals of its design are:
+**BMS1** is yet another data serialization format. The goals of its design are:
 
 * Binary data for very fast and lossless serialization.
 * Compact message size.
@@ -16,27 +16,24 @@ BMS1: Binary Message Stream, Version 1
 
 ### BMS1 message frame
 
-A BMS1 Message mainly consists of several values.
-Each value starts with one tag-byte that defines the value type and the data length.
-The data of a value consists of the defined amount of bytes
-
-After the tag byte, a binary data value follows. The length of the binary value is defined by the tag.
-
 The BMS1 message is framed by MessageStart and MessageEnd tags.
 A message contains at least one block. The block is framed by BlockStart and BlockEnd tags.
 The block contains an arbitrary count of values or other blocks.
+
 Values and blocks are optionally preceeded by attributes.
 
 By default, values and blocks are identified by their position in the message.
 Before the end of a block, additional values or blocks may be appended by a new sender.
 This data is skipped by an old receiver. 
 
-All elements of a BMS1 message are identified by the starting tag-byte.
+All elements of a BMS1 message start with a tag-byte.
 The tag-byte defines the type of the element and the length of binary data that follows the tag-byte.
+
 According to the [little endian, Intel convention](https://en.wikipedia.org/wiki/Endianness), 
 the first byte of the binary data is the least significant byte when representing numeric data.
 
-E.g:
+Example message structure:
+
 	MessageStart
        Attribute
        BlockStart
@@ -150,18 +147,19 @@ The following value-tag-bytes are used:
     099     Bitset          128 bit
 
     105     Decimal in string representation
-    109     Decimal         128 bit, [.NET representation](https://msdn.microsoft.com/en-us/library/system.decimal.getbits.aspx)
+    109     Decimal         128 bit, [Microsoft.NET representation](https://msdn.microsoft.com/en-us/library/system.decimal.getbits.aspx)
 
-    114     Float            32 bit, [.NET System.Short representation](https://msdn.microsoft.com/en-us/library/system.single.aspx)
+    114     Float            32 bit, [Microsoft.NET System.Short representation](https://msdn.microsoft.com/en-us/library/system.single.aspx)
 
     125     Double in string representation
-    128     Double           64 bit, [.NET System.Double representation](https://msdn.microsoft.com/en-us/library/system.double%28v=vs.110%29.aspx)
+    128     Double           64 bit, [Microsoft.NET System.Double representation](https://msdn.microsoft.com/en-us/library/system.double%28v=vs.110%29.aspx)
 
     134     Date: 2 byte signed short int year in the Gregorian calendar, 1 byte month, 1 byte day of month
     134     Time: 1 byte hour, 1 byte minute, 2 byte millisecond of the day
-    138     DateTime:        64 bit, [.NET System.DateTime representation](https://msdn.microsoft.com/en-us/library/system.datetime%28v=vs.110%29.aspx)
+    138     DateTime:        64 bit, [Microsoft.NET System.DateTime representation](https://msdn.microsoft.com/en-us/library/system.datetime%28v=vs.110%29.aspx)
 
-    141     Char
+    141     ASCII character    1 byte
+    142     Unicode character  2 byte
     145     String UTF8, zero terminated
 
     156     Byte array, length = 0...255 bytes.           The type attribute may describe the data format.
@@ -171,7 +169,7 @@ The following value-tag-bytes are used:
 
 ### BMS1 attribute tags
 
-Attributes describe the next block or value in the data stream.
+Attributes optionally describe the next block or value in the data stream.
 The following attribute-tag-bytes are used:
 
 	Tag ID	Description
@@ -180,8 +178,9 @@ The following attribute-tag-bytes are used:
 
 	175		Type attribute with UTF8 string that defines the type of the next block.
 
-    184     ArraySize attribute with 4 byte array length [0...4'294'967'295]
+    181     ArraySize attribute with 1 byte array length [0...255]
     182     ArraySize attribute with 2 byte array length [0...65'535]
+    184     ArraySize attribute with 4 byte array length [0...4'294'967'295]
             The array attribute allows to reserve memory space on the receiving side.
             It defines that the next value or block will be repeated [array length] times.
             All repeated elements belong to the same array value.
@@ -191,12 +190,12 @@ The following attribute-tag-bytes are used:
             This tag is used to transfer XML attributes.
 
     205     Namespace attribute with UTF8 string that defines name and namespace.
-            Name and namespace are separated by '=' character. Value is UTF8 encoded.
+            Name and namespace are separated by '=' character.
             This tag is used to transfer XML namespaces.
 
 
 
-### BMS1 block tags
+### BMS1 frame tags
 
 The following tag-bytes are used for message and block framing:
 
@@ -218,8 +217,9 @@ The following tag-bytes are used for message and block framing:
 	253		MessageEnd, before the next message start, additional attributes or values are sent (for future extension).
 
 	254		not allowed, invalid tag
+	255		not allowed, invalid tag
 
-Note: Length specifier does not apply to the 25x tag-bytes.
+Note: The length specifier does not apply to the 25x tag-bytes.
 
 
 
