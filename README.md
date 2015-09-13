@@ -91,11 +91,14 @@ The least significant decimal digit is used as a length specifier for the data t
 	xx9		16 bytes (128 bit, little endian) data follows
 
 Note A:
-    The tags 00x, 01x and 25x do not have length specifiers according to the above rules. 
+    The tags 00x, 01x, 24x and 25x do not have length specifiers according to the above rules. 
 
 Note B: 
-	The tags 00x and 01x are single byte tags, there is no data to skip after an unknown tag in this range is received.
+	The tags 00x and 01x are single byte tags, there is no data to be skipped after an unknown tag in this range is received.
 
+Note C:
+	Introducing new tags in the range 24x and 25x is a breaking change of the BMS1 specification.
+  	The message parsing fails, when an unknow 24x or 25x tag is read because the data length is not specified for these tags. 
 
 
 ### BMS1 value tags
@@ -109,9 +112,14 @@ The following value-tag-bytes are used:
 
 	Tag ID	Description
 	------	-----------
-    010     Bool = false,    Note: Length specifier does not apply to bool values.
-    011     Bool = true,     Note: Length specifier does not apply to bool values.
-    012     Null = no data,  Note: Length specifier does not apply to null values.
+    010     Bool = false,    Note: Length specifier does not apply to the 01x tag.
+    011     Bool = true
+
+    012     Null value = no data available
+
+    013     Second value tag set    : the next byte is a yet not defined value tag with length specifier.
+    014     Second attribute tag set: the next byte is a yet not defined attribute tag with length specifier.
+    015     Second framing tag set  : the next byte is a yet not defined framing tag with length specifier.
 
     021     Unsigned byte,    8 bit, range = [0...255]
 
@@ -154,16 +162,21 @@ The following value-tag-bytes are used:
     125     Double in string representation
     128     Double           64 bit, [Microsoft.NET System.Double representation](https://msdn.microsoft.com/en-us/library/system.double%28v=vs.110%29.aspx)
 
-    134     Date: 2 byte signed short int year in the Gregorian calendar, 1 byte month, 1 byte day of month
-    134     Time: 1 byte hour, 1 byte minute, 2 byte millisecond of the day
+    134     Date: 1. and 2. byte = year in the Gregorian calendar (signed short int), 3. byte = month, 4. byte = day of month
+    135     DateTime in string representation using the [Microsoft roundtrip format 'O'](https://msdn.microsoft.com/en-us/library/az4se3k1%28v=vs.110%29.aspx#Roundtrip)
     138     DateTime:        64 bit, [Microsoft.NET System.DateTime representation](https://msdn.microsoft.com/en-us/library/system.datetime%28v=vs.110%29.aspx)
+    
+	144     Time: 1. byte = hour, abs(2. byte) = minute, 3. and 4. byte = millisecond (unsigned short int)
+            A positive 2. byte indicates UTC time. A negative 2. byte indicates local time. 
+            TimeSpan is normally defined by the application as an integer value counting seconds or milliseconds.
+            The Time value (144) can also be used to represent a time span of up to +/-128 hours.
 
-    141     ASCII character    1 byte
-    142     Unicode character  2 byte
-    145     String UTF8, zero terminated
+    151     ASCII character    1 byte
+    152     Unicode character  2 byte
+    155     String UTF8, zero terminated
 
-    156     Byte array, length = 0...255 bytes.           The type attribute may describe the data format.
-    157     Byte array, length = 0...4'294'967'295 bytes. The type attribute may describe the data format.
+    166     Byte array, length = 0...255 bytes.           The type attribute may describe the data format.
+    167     Byte array, length = 0...4'294'967'295 bytes. The type attribute may describe the data format.
 
 
 
@@ -174,22 +187,22 @@ The following attribute-tag-bytes are used:
 
 	Tag ID	Description
 	------	-----------
-	165		Name attribute with UTF8 string that defines the name of the next block or value.
+	175		Name attribute with UTF8 string that defines the name of the next block or value.
 
-	175		Type attribute with UTF8 string that defines the type of the next block.
+	185		Type attribute with UTF8 string that defines the type of the next block.
 
-    181     ArraySize attribute with 1 byte array length [0...255]
-    182     ArraySize attribute with 2 byte array length [0...65'535]
-    184     ArraySize attribute with 4 byte array length [0...4'294'967'295]
+    191     ArraySize attribute with 1 byte array length [0...255]
+    192     ArraySize attribute with 2 byte array length [0...65'535]
+    194     ArraySize attribute with 4 byte array length [0...4'294'967'295]
             The array attribute allows to reserve memory space on the receiving side.
             It defines that the next value or block will be repeated [array length] times.
             All repeated elements belong to the same array value.
 
-    195     NameValue attribute with UTF8 string that defines name and value.
+    205     NameValue attribute with UTF8 string that defines name and value.
             Name and value are separated by '=' character. Value is UTF8 encoded.
             This tag is used to transfer XML attributes.
 
-    205     Namespace attribute with UTF8 string that defines name and namespace.
+    215     Namespace attribute with UTF8 string that defines name and namespace.
             Name and namespace are separated by '=' character.
             This tag is used to transfer XML namespaces.
 
@@ -202,24 +215,33 @@ The following tag-bytes are used for message and block framing:
 	Tag ID	Description
 	------	-----------
 
-	240		BlockStart, either no block type available or block type is defined by an attribute
+	240		Null Block without block type id. Block type may be defined by an attribute. No data and no BlockEnd is appended.
+	241		Null Block with 2 bytes block type id, range [1...65'535]. No data and no BlockEnd is appended.
 
-	242		BlockStart with 2 bytes block type id, range [1...65'535]
+	242		BlockStart without block type id. Block type may be defined by an attribute.
+	243		BlockStart with 2 bytes block type id, range [1...65'535].
 
-	244		BMS1 MessageStart, BMS specification version 1.0.
+	244		BlockEnd, no checksum
+	245		BlockEnd, with 2 byte checksum (tbd)
+
+	246		yet undefined, invalid tag
+	247		yet undefined, invalid tag
+	248		yet undefined, invalid tag
+	249		yet undefined, invalid tag
+
+	250		BMS1 MessageStart, BMS specification version 1.0.
             MessageStart is followed by 4 bytes containing the decimal data [01, 66, 77, 83].  
             This magic number allows a receiver to synchronize to a running data stream.
 	
-	250		BlockEnd,   no checksum
-	251		BlockEnd,   with 2 byte checksum (tbd)
+	251     BMS1 MessageStart, short form without synchronization data.
+	252     BMS2 (next version) MessageStart, short form without synchronization data.
 
-	252		MessageEnd, no checksum
-	253		MessageEnd, before the next message start, additional attributes or values are sent (for future extension).
+	253		MessageEnd, no checksum
+	254		MessageEnd. Before the next message start, additional attributes or values are sent (for future extension).
 
-	254		not allowed, invalid tag
 	255		not allowed, invalid tag
 
-Note: The length specifier does not apply to the 25x tag-bytes.
+Note: The length specifier does not apply to the 24x and 25x tag-bytes.
 
 
 
@@ -227,8 +249,8 @@ Note: The length specifier does not apply to the 25x tag-bytes.
 
 I do not recommend to implement a BMS1 serializer using reflection and attributes (in C# speak).
 You get much better control over serialization and versioning when implementing interfaces like the ones below.
-You can keep XML and/or Json serialization attributes in your data transfer objects (DTO) 
-but you also implement interface IBms1Block on the DTO to programmatically serialize and deserialize from BMS1. 
+You can keep XML and/or Json serialization attributes in your data transfer objects (DTO).
+But you also implement interface IBms1Block on the DTO to programmatically serialize and deserialize from BMS1. 
 In the end this approach will be less error prone, better maintainable and understandable than the declarative approach.
 
 	public interface IBms1Block
