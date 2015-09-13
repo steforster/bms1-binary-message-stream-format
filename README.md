@@ -10,7 +10,10 @@ BMS1: Binary Message Stream, Version 1
 * Extensible and version tolerant: 
   Old implementations of the BMS serializer and old application versions know how to skip new/unknown parts of a message.
   A device with new BMS-serializer or new BMS-message version may be plugged into a network of old devices and the system behaves as before.
-  To fulfill this requirement, the application programmer must follow some rules regarding message structure. 
+  To fulfill this requirement, the application programmer must follow some rules regarding message structure.
+* Partially implementable: A implementation must not support all attributes and datatypes.
+  The partial implementation is able to correctly read all known data of a structure. At the same time it is able to skip all unknown,
+  additional or later defined data. 
 * Potential to replace Json or XML serializers.
 
 
@@ -79,26 +82,23 @@ The least significant decimal digit is used as a length specifier for the data t
 
 	Tag ID	Length of data that follows the tag byte
 	------	----------------------------------------
-	xx0     No data follows, all contained data is zero (0), empty or is undefined for some data types.
+	xx0     No data follows, all contained data is zero (0), is empty or is undefined for some data types.
 	xx1		1 byte   (  8 bit) data follows
 	xx2		2 bytes  ( 16 bit, little endian) data follows
-	xx3		reserved
+	xx3		yet undefined, invalid length specifier
 	xx4		4 bytes  ( 32 bit, little endian) data follows
-	xx5		An arbitrary length of data follows. It is a UTF8 encoded, zero terminated character string (the last byte is '0').
-	xx6		1 byte follows that defines the length of data in bytes (0...255 bytes)
-	xx7		4 byte follow  that define  the length of data in bytes (0...4'294'967'295 bytes)
+	xx5		An arbitrary amount of data follows. It is an UTF8 encoded, zero terminated character string (the last byte is '0').
+	xx6		1 byte follows that defines the byte-length of additional data (0...255 bytes)
+	xx7		4 byte follow  that define  the byte-length of additional data (0...4'294'967'295 bytes)
 	xx8		8 bytes  ( 64 bit, little endian) data follows
 	xx9		16 bytes (128 bit, little endian) data follows
 
-Note A:
-    The tags 00x, 01x, 24x and 25x do not have length specifiers according to the above rules. 
+Note A: The tags 00x, 01x, 24x and 25x do not have length specifiers according to the above rules. 
 
-Note B: 
-	The tags 00x and 01x are single byte tags, there is no data to be skipped after an unknown tag in this range is received.
+Note B: The tags 00x and 01x are single byte tags, there is no data to be skipped after an unknown tag in this range is received.
 
-Note C:
-	Introducing new tags in the range 24x and 25x is a breaking change of the BMS1 specification.
-  	The message parsing fails, when an unknow 24x or 25x tag is read because the data length is not specified for these tags. 
+Note C: The tags 24x and 25x have individually defined additional data length between 0 and 4 bytes.
+
 
 
 ### BMS1 value tags
@@ -117,13 +117,17 @@ The following value-tag-bytes are used:
 
     012     Null value, block or array = no data is available
 
-    013     Second value tag set    : The next byte is a yet not defined value tag with length specifier.
-    014     Second attribute tag set: The next byte is a yet not defined attribute tag with length specifier.
-    015     Second framing tag set  : The next byte is a yet not defined framing tag with length specifier.
+    013     Alternate 1 tag set: The next byte is a yet not defined tag with length specifiers equal to the base set.
+    014     Alternate 2 tag set: The next byte is a yet not defined tag with length specifiers equal to the base set.
+    015     Alternate 3 tag set: The next byte is a yet not defined tag with length specifiers equal to the base set.
 	
 	016		Character type modification attribute: 
             Unsigned byte  (02x) must be interpreted as a ASCII 1 byte character. 
             Unsigned short (03x) must be interpreted as a UNICODE 2 byte character.
+    
+	017     yet undefined tag without additional data
+    018     yet undefined tag without additional data
+    019		yet undefined tag without additional data
 
     020     Unsigned byte,    8 bit,         [0]
     021     Unsigned byte,    8 bit, range = [0...255]
@@ -165,13 +169,13 @@ The following value-tag-bytes are used:
     078     Signed long      64 bit, range = [-/+ full 64 bit range]
 
     080     Enumeration value                [0]
-    081     Enumeration value        range = [-128...+127]
+    081     Enumeration  8 bit       range = [-128...+127]
     082     Enumeration 16 bit       range = [-32'768...+32'767]
-    084     Enumeration value        range = [-2'147'483'648...2'147'483'647]
+    084     Enumeration 32 bit       range = [-2'147'483'648...2'147'483'647]
     085     Enumeration value in string representation
     086     Enumeration 16 bit short array, (size = byte length/2).
     087     Enumeration 16 bit long  array, (size = byte length/2).
-    088     Enumeration value        range = [-/+ full 64 bit range]
+    088     Enumeration 64 bit       range = [-/+ full 64 bit range]
 
     090     Bitset, all bits = 0
     091     Bitset            8 bit
@@ -218,7 +222,7 @@ The following value-tag-bytes are used:
     150     EmptyString of any encoding
     151     ASCII character    1 byte
     152     Unicode character  2 byte
-    155     String UTF8, zero terminated: First 0-byte marks end of string.
+    155     String UTF8, zero terminated: 0-byte marks end of string.
     156     String UTF8, length = 0...255 bytes before decoding.
     157     String UTF8, length = 0...4'294'967'295 bytes before decoding.
 
@@ -293,10 +297,10 @@ The following tag-bytes are used for message and block framing:
 	244		BlockEnd, no checksum
 	245		BlockEnd, with 2 byte checksum (tbd)
 
-	246		yet undefined, invalid tag
-	247		yet undefined, invalid tag
-	248		yet undefined, invalid tag
-	249		yet undefined, invalid tag
+	246		yet undefined tag with 4 bytes additional data
+	247		yet undefined tag with 4 bytes additional data
+	248		yet undefined tag with 4 bytes additional data
+	249		yet undefined tag with 4 bytes additional data
 
 	250		BMS1 MessageStart, BMS specification version 1.0.
             MessageStart is followed by 4 bytes containing the decimal data [01, 66, 77, 83].  
@@ -309,8 +313,6 @@ The following tag-bytes are used for message and block framing:
 	254		MessageEnd
 
 	255		not allowed, invalid tag
-
-Note: The length specifier does not apply to the 24x and 25x tag-bytes.
 
 
 
@@ -355,6 +357,11 @@ In the end this approach will be less error prone, better maintainable and under
         ....
 	}
 
+
+I recommend to start with a partial implementation. E.g. just support 'bool' data fields and no attributes.
+This partial implementation must be able to read a large message starting with bool data fields. 
+Then it has to skip all the rest of a complex BMS1 message including all kind of current or future tags.
+It is a primary goal of the specification to support this. Feedback is very welcome.
 
 
 ### License
