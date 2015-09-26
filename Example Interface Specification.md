@@ -82,7 +82,8 @@ When a service receives an idle message, it replys an idle message too.
 When a service receives an identification message from a client, it replys the same message type with the service identification.
 
 	InterfaceName: Char[30];
-		The name is 'Hobbit - Gollum'. Any other name indicates another interface or a breaking change of this interface contract.
+		The name is 'Hobbit - Gollum'.  
+		Any other name indicates another interface or a breaking change of this interface contract.
 
 	InterfaceVersion: Int16;
 		The interface versions are listed at the top of this document.
