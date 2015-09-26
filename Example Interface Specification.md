@@ -8,7 +8,7 @@ Client : PC application 'Gollum', C# TCP client
 Service: PLC application 'Hobbit', Siemens S7, TCP port 9100.
 
 **Message exchange**  
-Messages are transfered over a TCP/IP connection.  
+Messages are transferred over a TCP/IP connection.  
 The 'Hobbit' hostname is configured on 'Gollum'.  
 
 'Hobbit' accepts connections from several 'Gollum' instances.
@@ -17,13 +17,12 @@ But only one of these instances is allowed to actively execute commands.
 When a client or a service has not received a message for 10 seconds, it closes the connection locally.
 
 The service sends responses to requests from the client.
-The service also may send asynchronous notifications to the client.
+The service may also send asynchronous notifications to the client.
 
 The message serialization format is [BMS1](https://github.com/steforster/bms1-binary-message-stream-format).
 
 
-History
--------
+**Interface version history**  
 
 Version |    Date    | Name | Modifications
 :------:|:----------:|:----:|:-------------
@@ -67,7 +66,7 @@ The recommended datatypes are:
 	Bool, Byte, Int16, Int32, Char[]
 
 Due to restrictions on the 'Hobbit' PLC, strings are transferred as UTF8 encoded byte arrays.
-The definition Char[20] means that the PLC will limit the string to 20 bytes when reading the message.
+The definition 'Char[20]' means that the PLC will limit the string to 20 bytes when reading the message.
 
 
 Message definition
@@ -82,11 +81,19 @@ When a service receives an idle message, it replys an idle message too.
 ### Message type 2: Identification
 When a service receives an identification message from a client, it replys the same message type with the service identification.
 
-	ApplicationName: Char[30];
+	InterfaceName: Char[30];
+		The name is 'Hobbit - Gollum'. Any other name indicates another interface or a breaking change of this interface contract.
+
 	InterfaceVersion: Int16;
+		The interface versions are listed at the top of this document.
+
+	ApplicationName: Char[30];
 	ApplicationVersion: Block 'VersionBase';
 		Here we demonstrate how to define inherited block types in messages:
 		Block 'VersionBase' may be either a 'VersionDotNet' or a 'VersionPLC' block.
+
+	ApplicationInstance: Char[30];
+		The application instance name is unique in a plant. Several instances may run on the same computer.
  
 
 #### Block type 100: VersionBase
@@ -105,7 +112,7 @@ VersionBase contains no members, it is the base of type VersionDotNet and Versio
 
 	**Version 2**
 	CpuType: Enum CpuType;
-		Here we demonstrate how to define an extended message member in version 2 of the message.
+		Here we demonstrate how to define an extended message member in version 2 of the message type.
 		Starting with version 2, the VersionPLC-block includes the CpuType enumeration.
 	    The added member will simply be skipped by an old receiver.
 
