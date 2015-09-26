@@ -16,11 +16,14 @@ BMS1: Binary Message Stream, Version 1
   additional or later defined data. 
 * Potential to replace Json or XML serializers.
 
+**BMS1 Implementations**
+* [Remact.Net.Bms1Serializer](https://github.com/steforster/Remact.Net.Bms1Serializer), C# for Windows and Mono platforms
+
 
 ### BMS1 message frame
 
 The BMS1 message is framed by MessageStart and MessageEnd tags.
-A message contains at least one block. The block is framed by BlockStart and BlockEnd tags.
+A message contains one block. The block is framed by BlockStart and BlockEnd tags.
 The block contains an arbitrary count of values or other blocks.
 
 Values and blocks are optionally preceeded by attributes.
@@ -67,11 +70,12 @@ the BMS1 frame is defined as follows:
 
 	<Attribute>    ::= <AttributeType> <Length> [Data]
 
-	<AttributeType>::= Name | Type | ArraySize | NameValue | Namespace
+	<AttributeType>::= Name | Type | CollectionSize | NameValue | Namespace
 
-	<ValueType>    ::= Null | Bool | Byte | Integer | Enumeration | Bitset | Decimal | Float | DateTime | Char | String | ByteArray
+	<ValueType>    ::= Null | Bool | Byte | UInt16 | UInt32 | Int16 | Int32 | Int64 | Enumeration | Bitset 
+                       | Decimal | Float | Double | DateTime | Char | String
 
-	<Length>       ::= 0 | 1 | 2 | 4 | 8 | 16 | Utf8ZeroTerminated | additional 1 byte length field | additional 4 byte length field
+	<Length>       ::= 0 | 1 | 2 | 4 | 8 | 16 | Utf8ZeroTerminated | additional 1 byte array length field | additional 4 byte array length field
 
 
 
@@ -134,39 +138,39 @@ The following value-tag-bytes are used:
     026     Unsigned byte,    short array or ASCII character string when attribute 016 is present.
     027     Unsigned byte,    long  array or ASCII character string when attribute 016 is present.
 
-    030     Unsigned short   16 bit,         [0]
-    031     Unsigned short   16 bit, range = [0...255]
-    032     Unsigned short   16 bit, range = [0...65'535]
-    036     Unsigned 16 bit  short array or Unicode wide character string when attribute 016 is present, (size = byte length/2).
-    037     Unsigned 16 bit  long  array or Unicode wide character string when attribute 016 is present.
+    030     Unsigned UInt16 bit,             [0]
+    031     Unsigned UInt16 bit,     range = [0...255]
+    032     Unsigned UInt16 bit,     range = [0...65'535]
+    036     Unsigned UInt16, short array or Unicode wide character string when attribute 016 is present, (size = byte length/2).
+    037     Unsigned UInt16, long  array or Unicode wide character string when attribute 016 is present.
 
-    040     Signed short     16 bit,         [0]
-    041     Signed short     16 bit, range = [-128...+127]
-    042     Signed short     16 bit, range = [-32'768...+32'767]
-    046     Signed 16 bit    short array, (size = byte length/2).
-    047     Signed 16 bit    long  array.
+    040     Signed Int16 bit,                [0]
+    041     Signed Int16 bit,        range = [-128...+127]
+    042     Signed Int16 bit,        range = [-32'768...+32'767]
+    046     Signed Int16, short array, (size = byte length/2).
+    047     Signed Int16, long  array.
 
-    050     Unsigned integer 32 bit,         [0]
-    051     Unsigned integer 32 bit, range = [0...255]
-    052     Unsigned integer 32 bit, range = [0...65'535]
-    054     Unsigned integer 32 bit, range = [0...4'294'967'295]
-    056     Unsigned integer short array, (size = byte length/4).
-    057     Unsigned integer long  array.
+    050     Unsigned UInt32 bit,             [0]
+    051     Unsigned UInt32 bit,     range = [0...255]
+    052     Unsigned UInt32 bit,     range = [0...65'535]
+    054     Unsigned UInt32 bit,     range = [0...4'294'967'295]
+    056     Unsigned UInt32 short array, (size = byte length/4).
+    057     Unsigned UInt32 long  array.
 
-    060     Signed integer   32 bit,         [0]
-    061     Signed integer   32 bit, range = [-128...+127]
-    062     Signed integer   32 bit, range = [-32'768...+32'767]
-    064     Signed integer   32 bit, range = [-2'147'483'648...2'147'483'647]
-    066     Signed integer   short array, (size = byte length/4).
-    067     Signed integer   long  array.
+    060     Signed Int32 bit,                [0]
+    061     Signed Int32 bit,        range = [-128...+127]
+    062     Signed Int32 bit,        range = [-32'768...+32'767]
+    064     Signed Int32 bit,        range = [-2'147'483'648...2'147'483'647]
+    066     Signed Int32, short array, (size = byte length/4).
+    067     Signed Int32, long  array.
 
-    070     Signed long      64 bit,         [0]
-    071     Signed long      64 bit, range = [-128...+127]
-    072     Signed long      64 bit, range = [-32'768...+32'767]
-    074     Signed long      64 bit, range = [-2'147'483'648...2'147'483'647]
-    076     Signed 64 bit    short array, (size = byte length/8).
-    077     Signed 64 bit    long  array.
-    078     Signed long      64 bit, range = [-/+ full 64 bit range]
+    070     Signed Int64 bit,                [0]
+    071     Signed Int64 bit,        range = [-128...+127]
+    072     Signed Int64 bit,        range = [-32'768...+32'767]
+    074     Signed Int64 bit,        range = [-2'147'483'648...2'147'483'647]
+    076     Signed Int64, short array, (size = byte length/8).
+    077     Signed Int64, long  array.
+    078     Signed Int64 bit,        range = [-/+ full 64 bit range]
 
     080     Enumeration value                [0]
     081     Enumeration  8 bit       range = [-128...+127]
@@ -225,6 +229,13 @@ The following value-tag-bytes are used:
     155     String UTF8, zero terminated: 0-byte marks end of string.
     156     String UTF8, length = 0...255 bytes before decoding.
     157     String UTF8, length = 0...4'294'967'295 bytes before decoding.
+			
+			** Character or string arrays: **
+			Empty strings or empty character arrays of any encoding are transferred with the EmptyString (150) tag.
+            Strings can be written in different encodings by using the following tags:
+            - Unsigned byte  (021), the data is interpreted as a ASCII character array when the char modification attribute '016' is set. 
+            - Unsigned short (032), the data is interpreted as a Unicode 2-byte character array when the char modification attribute '016' is set.
+            - UTF8 string    (15x), the data is interpreted as UTF8 encoded
 
 
 
@@ -239,33 +250,25 @@ The following attribute-tag-bytes are used:
 
 	185		Type attribute with UTF8 string that defines the type of the next block.
 
-    191     ArrayLength attribute with 1 byte array length [0...255]
-    192     ArrayLength attribute with 2 byte array length [0...65'535]
-    194     ArrayLength attribute with 4 byte array length [0...4'294'967'295]
-            The array attribute defines that the next value or block will be repeated [array length] times.
-            All repeated elements belong to the same array value.
+    191     Collection attribute with 1 byte collection length [0...255]
+    192     Collection attribute with 2 byte collection length [0...65'535]
+    194     Collection attribute with 4 byte collection length [0...4'294'967'295]
+            The collection attribute defines that the next value or block will be repeated [collection length] times.
+            All repeated elements belong to the same block member.
 
-			** Empty arrays: **
-			When the array length specifies 0 elements, then the first element-tag is one of the tags that are not followed by data:
+			** Empty collections: **
+			When the collection length specifies 0 elements, then the first element-tag is one of the tags that are not followed by data:
             Value tag with length specifier = 0 (xx0), NullBlock (240) or BaseBlock (241).
-            When the array itself is not present, then a null-tag (012) is used and the ArrayLength attribute is optional.
+            When the collection itself is not present, then a null-tag (012) is used and the collection attribute is optional.
 
-			** Arrays of simple value types: **
+			** Collection of simple value types: **
 			Data type and other attributes from the first element must be equal for all array elements.
-            Eeach element is preceeded by the tag-byte to specify its individual length.
-			When the value itself has an array length specification, then 2 dimensional, jagged arrays are transferred.
-			
-			** Character or string arrays: **
-			Empty strings or empty character arrays of any encoding are transferred with the EmptyString (150) tag.
-			When the value itself has an array length specification, then an array of strings is transferred.
-            When the array modification attribute '017', then additional rules apply:
-            - The type can be mixed in a string array between unsigned byte, unsigned short and UTF8 string.
-            - Unsigned byte  (021), the data is interpreted as a ASCII character array. 
-            - Unsigned short (032), the data is interpreted as a Unicode 2-byte character array.
-            - UTF8 string    (15x), the data is interpreted as UTF8 encoded
+            Each element is preceeded by the tag-byte to specify its individual length.
+			When the value itself has an array length specification, then collections of arrays are transferred.
+            When the value is a string, then a collection of strings is transferred.
 
-			** Arrays of blocks: **
-			BlockStart and BlockEnd tags are repeated for each block of the array. Inner values are specified by their tag-byte.
+			** Collection of blocks: **
+			BlockStart and BlockEnd tags are repeated for each block of the collection. Inner values of the block are specified by their tag-byte.
             By default all blocks have the same data type and attributes.
             When the first block is defined with a BaseBlockDefinition tag (242), then blocks may contain their own, differing type definition.
 			Each block type must be derivable from the base block type.
@@ -321,47 +324,54 @@ The following tag-bytes are used for message and block framing:
 I do not recommend to implement a BMS1 serializer using reflection and attributes (in C# speak).
 You get much better control over serialization and versioning when implementing interfaces like the ones below.
 You can keep XML and/or Json serialization attributes in your data transfer objects (DTO).
-But you also implement interface IBms1Block on the DTO to programmatically serialize and deserialize from BMS1. 
+But you also implement interface IBms1Dto on the DTO to programmatically serialize and deserialize from BMS1. 
 In the end this approach will be less error prone, better maintainable and understandable than the declarative approach.
 
-	public interface IBms1Block
+	public interface IBms1Dto
 	{
-		public void Bms1Read  (IBms1StreamReader stream);
-		public void Bms1Write (IBms1StreamWriter stream);
+        void Bms1Read (IBms1Reader reader);
+        void Bms1Write(IBms1Writer writer);
+        int  Bms1BlockTypeId { get; }
 	}
 
-	public interface IBms1StreamReader
+	public interface IBms1Reader
 	{
-		public bool EndOfMessage {get;} // before message start or after message end
-		public bool EndOfBlock   {get;} // before block start or after block end
+		int  ReadMessageStart (Stream stream);   // returns next message block type
+		void ReadMessage (IBms1Dto messageDto);
 
-		public void ReadMessageStart (ref int messageType, ref List<Bms1Attribute> attributes);
-		public void ReadMessage (ref IBms1Block message);
-
-		public bool ReadBlock (int blockType, ref IBms1Block block); // returns false, when not read because: NoData(null), not matching type, EndOfBlock, EndOfMessage
-		public bool ReadByte  (ref byte data); // returns false, when not read because: NoData(null), EndOfBlock, EndOfMessage
-		public bool ReadInt   (ref int  data); // returns false, when not read because: NoData(null), EndOfBlock, EndOfMessage
+		bool ReadBool();// check EndOfBlock before calling Read... methods.
+		Int32 ReadInt32();
+		....
+		bool EndOfBlock  { get; } // true before block start or after block- or message end.
+		int  BlockTypeId { get; } // is set before the next block must be read 
+		void ReadBlock(IBms1Dto blockDto);    
         ....
 	}
 
-	public interface IBms1StreamWriter
+	public interface IBms1Writer
 	{
-		public bool EndOfMessage {get;} // before message start or after message end
-		public bool EndOfBlock   {get;} // before block start or after block end
+		void WriteMessage(Stream stream, IBms1Dto messageDto)
 
-		public void WriteMessage (int messageType, IBms1Block message, List<Bms1Attribute> attributes);
-
-		public void WriteBlock (int  blockType, IBms1Block block); // inner block type is written by the outer block
-		public void WriteByte  (byte data);
-		public void WriteInt   (int  data);
+		void WriteBool(bool data);
+		void WriteInt32(Int32 data);
+		void WriteBlock(IBms1Dto blockDto);
         ....
 	}
 
 
-I recommend to start with a partial implementation. E.g. just support 'bool' data fields and no attributes.
-This partial implementation must be able to read a large message starting with bool data fields. 
+I recommend to start with a partial implementation. Just support some data types and no attributes.
+This partial implementation must be able to read a large message starting with fields of supported data types. 
 Then it has to skip all the rest of a complex BMS1 message including all kind of current or future tags.
 It is a primary goal of the specification to support this. Feedback is very welcome.
+
+
+### Interface specification
+
+The interface specification must be implemented on client and on service side.
+BMS1 is intended to run on PLC's with limited or very specific programming features.
+Usually a machine translated interface specification would mean much more overhead and no gain in the long run.
+This [example interface specification](./Example Interface Specification.md) gives some hints.
+Plain text documents with some markdown are well suited for version control.
 
 
 ### License
