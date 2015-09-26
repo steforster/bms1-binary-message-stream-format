@@ -1,15 +1,15 @@
-Interface specification Hobbit - Gollum
-=======================================
+Example interface specification Hobbit - Gollum
+===============================================
 This interface specification is a free form, human readable text document. It is under version control.
 The document fully describes semantics and syntax of an interface between two actors.
 
-**Actors**
-Client : PC application 'Gollum', C# TCP client
+**Actors**  
+Client : PC application 'Gollum', C# TCP client  
 Service: PLC application 'Hobbit', Siemens S7, TCP port 9100.
 
-**Message exchange**
-Messages are transfered over a TCP/IP connection.
-The 'Hobbit' hostname is configured on 'Gollum'.
+**Message exchange**  
+Messages are transfered over a TCP/IP connection.  
+The 'Hobbit' hostname is configured on 'Gollum'.  
 
 'Hobbit' accepts connections from several 'Gollum' instances.
 But only one of these instances is allowed to actively execute commands.
@@ -41,7 +41,7 @@ Never send a new enumeration definition to an old partner.
 Overview
 --------
 
-## Included interfaces
+### Included interfaces
 The two actors also support messages from base interface definitions.
 All interfaces share the same TCP connection.
 An offset is added to message- and block IDs of included interfaces.
@@ -50,78 +50,72 @@ The IDs are mapped as follows:
 * 2001...2999: Logging interface
 * 3001...3999: DriveConfiguration interface
 
-## Message type IDs
+### Message type IDs
+The 'Hobbit - Gollum' interface supports the following message types:
 * 1: Idle
 * 2: Identification
 
-## Inner block type IDs
+### Inner block type IDs
+The messages of the 'Hobbit - Gollum' interface contain the following block types:
 * 100: VersionBase
-** 101: VersionDotNet
-** 102: VersionPLC
+  * 101: VersionDotNet
+  * 102: VersionPLC
 
-## Basic data types
-Not all datatypes of the BMS1 specification are supported by the PLC.
-The recommended datatypes are:
+### Basic data types
+Not all datatypes of the BMS1 specification are supported by the PLC 'Hobbit'.
+The recommended datatypes are:  
 	Bool, Byte, Int16, Int32, Char[]
 
 Due to restrictions on the 'Hobbit' PLC, strings are transferred as UTF8 encoded byte arrays.
-The definition Char[20] means that the PLC will limit the string to 20 bytes.
+The definition Char[20] means that the PLC will limit the string to 20 bytes when reading the message.
 
 
 Message definition
 ------------------
 
-## Message type 1: Idle
-
+### Message type 1: Idle
 This is an empty message without any data member.
 The client sends it, when it has not sent another message for 3 seconds.
 When a service receives an idle message, it replys an idle message too.
 
 	
-## Message type 2: Identification
-When a service receives an identification message from client, it replys the same message type with the service identification.
-{
+### Message type 2: Identification
+When a service receives an identification message from a client, it replys the same message type with the service identification.
+
 	ApplicationName: Char[30];
 	InterfaceVersion: Int16;
 	ApplicationVersion: Block 'VersionBase';
 		Here we demonstrate how to define inherited block types in messages:
 		Block 'VersionBase' may be either a 'VersionDotNet' or a 'VersionPLC' block.
-}
  
 
-### Block type 100: VersionBase
+#### Block type 100: VersionBase
 VersionBase contains no members, it is the base of type VersionDotNet and VersionPLC.
 
 
-### Block type 101: VersionDotNet : VersionBase
-{
+#### Block type 101: VersionDotNet : VersionBase
 	Major: Int16;
 	Minor: Int16;
 	Revision: Int16;
 	Build: Int16;
-}
 
 
-### Block type 102: VersionPLC : VersionBase
-{
+#### Block type 102: VersionPLC : VersionBase
 	Version: Char[30];
 
-    **Version 2**
+	**Version 2**
 	CpuType: Enum CpuType;
 		Here we demonstrate how to define an extended message member in version 2 of the message.
 		Starting with version 2, the VersionPLC-block includes the CpuType enumeration.
-        The added member will simply be skipped by an old receiver.
-}
+	    The added member will simply be skipped by an old receiver.
 
 
 Enumeration definition
 ----------------------
 
 ### Enum CpuType
-{
 	Unknown = 0,	
 	IntelAtom = 1,
 	ArmCortexA5 = 2,
 	ArmCortexA9 = 3
-}
 
