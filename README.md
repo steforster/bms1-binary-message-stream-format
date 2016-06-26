@@ -397,47 +397,52 @@ The outermost block of a message contains some name/value attributes (tag 195). 
 When the connection is set up, the first message needs attributes 'PV' and 'SID'. All messages need the attribute 'MT'. These attribute names are case sensitive.
 
 **'PV': Protocol Version**
-	Example: "PV=1.0"  
-	The 'PV' attribute is needed on the first message, when the connection is set up.
-	A receiver will accept messages from a newer protocol version as long as the mayor version
-	is not newer than its own.
+
+    Example: "PV=1.0"  
+    The 'PV' attribute is needed on the first message, when the connection is set up.
+    A receiver will accept messages from a newer protocol version as long as the mayor version
+    is not newer than its own.
 
 **'SID': Service ID**
-	Example: "SID=MyActor/Port12"  
-	The service id usually is the absolute path of the service URI.  
-	Using the service id, a receiver can find the actor and port instance to send the message to.
-	For each SID a TCP channel is opened. Therefore, only the first message needs the SID.
+
+    Example: "SID=MyActor/Port12"  
+    The service id usually is the absolute path of the service URI.  
+    Using the service id, a receiver can find the actor and port instance to send the message to.
+    For each SID a TCP channel is opened. Therefore, only the first message needs the SID.
 
 **'MT': Message Type**
-	Example: "MT=Q"  
-	The following message types are possible:
-		'Q': A request message. The sender awaits a response message with the same RID.
-		'R': A response message to the waiting actor port.
-		'N': A notification message. No response is awaited.
-		'E': An error message, the type is Remact.Net.ErrorMessage.
+
+    Example: "MT=Q"  
+    The following message types are possible:
+        'Q': A request message. The sender awaits a response message with the same RID.
+        'R': A response message to the waiting actor port.
+        'N': A notification message. No response is awaited.
+        'E': An error message, the type is Remact.Net.ErrorMessage.
 
 **'RID': Request ID**
-	Example: "RID=12345"  
-	The request ID is a 32 bit signed integer value. Messages with 'MT=Q', 'MT=R' or 'MT=E' 
-	need the RID attribute to release a waiting actor port.
-	Request IDs are incremented by the sender up to a certain maximum. 
-	In the next message, the RID will drop to the minimum.
+
+    Example: "RID=12345"  
+    The request ID is a 32 bit signed integer value. Messages with 'MT=Q', 'MT=R' or 'MT=E' 
+    need the RID attribute to release a waiting actor port.
+    Request IDs are incremented by the sender up to a certain maximum. 
+    In the next message, the RID will drop to the minimum.
 
 **'DM': Destination Method**
-	Example: "DM=Remact.ActorInfo.Remact.ActorInfo"  
 
-	On the receiving side, the payload type to deserialize can be found in two ways:
-		1) The 'DM' attribute is present, this specifies a namespace and method name. 
-		   The type of the first parameter of this method corresponds to the payload type.
-		2) A BlockType attribute (tag 185) is present on the outermost block. 
-		   This specifies namespace and class name of the payload.
+    Example: "DM=Remact.ActorInfo.Remact.ActorInfo"  
 
-	After deserializing the payload, the method to handle it can be found in four ways:
-		1) The 'DM' attribute is present, this specifies a namespace and method name to be called.
-		2) A response is handled in the awaiting code.
-		3) The first registered method for the given port, that accepts payloads of given type 
+    On the receiving side, the payload type to deserialize can be found in two ways:
+        1) The 'DM' attribute is present, this specifies a namespace and method name. 
+           The type of the first parameter of this method corresponds to the payload type.
+        2) A BlockType attribute (tag 185) is present on the outermost block. 
+           This specifies namespace and class name of the payload.
+
+    After deserializing the payload, the method to handle it can be found in four ways:
+        1) The 'DM' attribute is present, this specifies a namespace and method name to be called.
+        2) A response is handled in the awaiting code.
+        3) The first registered method for the given port, that accepts payloads of given type 
            (or compatible base type) is called.
-		4) When no matching method is found, the default message handler is called.
+        4) When no matching method is found, the default message handler is called.
 
 
 
